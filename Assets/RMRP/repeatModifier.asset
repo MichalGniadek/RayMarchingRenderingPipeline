@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e0c0aa67cb797c48b00cff1f67103a4, type: 3}
+  m_Name: repeatModifier
+  m_EditorClassIdentifier: 
+  code: "float3 repeat(float3 position, float3 repeat)\r\n{\r\n    //float3 cell
+    = floor((abs(position)+0.5*repeat)/repeat);\r\n\r\n    return fmod(abs(position+0.5*repeat),
+    repeat)\n\t-0.5*repeat;\r\n}"
+  functionName: repeat
+  functionArguments:
+  - type: float3
+    name: repeat

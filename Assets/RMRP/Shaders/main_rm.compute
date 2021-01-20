@@ -1,0 +1,80 @@
+﻿#pragma kernel CSMain
+
+uniform RWTexture2D<float4> output;
+
+float4x4 camera_to_world;
+float4x4 inverse_projection;
+
+struct Ray
+{
+    float3 origin;
+    float3 direction;
+};
+
+float2 getOutputDimensions()
+{
+    float2 dimension;
+    output.GetDimensions(dimension.x, dimension.y);
+    return dimension;
+}
+
+Ray calculateRay(uint2 screen_pos)
+{
+    Ray r;
+
+    float2 uv = screen_pos.xy / getOutputDimensions() * 2 - 1;
+
+    r.origin = mul(camera_to_world, float4(0,0,0,1)).xyz;
+    r.direction = mul(inverse_projection, float4(uv.xy,0,1)).xyz;
+
+    r.direction /= abs(r.direction.z);
+
+    r.direction = mul(camera_to_world, float4(r.direction,0)).xyz;
+    r.direction = normalize(r.direction);
+
+    return r;
+}
+
+float rm_sceneSDF(float3 position);
+
+//technique from http://www.iquilezles.org/www/articles/normalsSDF/normalsSDF.htm
+float3 calculate_normal(float3 pos)
+{
+    const float h = 0.01;
+    const float2 k = float2(h,-h);
+    return normalize( k.xyy * rm_sceneSDF( pos + k.xyy ) +
+                      k.yyx * rm_sceneSDF( pos + k.yyx ) +
+                      k.yxy * rm_sceneSDF( pos + k.yxy ) +
+                      k.xxx * rm_sceneSDF( pos + k.xxx ) );
+}
+
+#include "generated_rm.compute"
+
+float4 raymarch(Ray r)
+{
+    const int STEP = 1024;
+    float dist = 0;
+	for (int i = 0; i < STEP; i++)
+	{
+        float current_distance = rm_sceneSDF(r.origin + r.direction * dist);
+		if (current_distance < 0.001f * dist)//not sure about that "* dist" bit
+        {
+            //float4 col = rm_materialSceneSDF(r.origin + r.direction * dist);
+            //col.rgb = pow(col.rgb, float3(0.4545, 0.4545, 0.4545)); //Gamma correction
+            //return col;
+            return float4(dist, dist, dist, 1);
+        }
+        dist += current_distance;
+	}
+
+	return float4(1, 1, 0, 1);
+}
+
+
+[numthreads(32,32,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    //change it later so you can blend input color depending on alpha
+    Ray r = calculateRay(id.xy);
+    output[id.xy] = raymarch(r);
+}

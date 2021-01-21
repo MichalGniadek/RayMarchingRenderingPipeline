@@ -12,13 +12,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3397cea94a1cdb94bb60f4f52fbe25c1, type: 3}
   m_Name: SDF Scene
   m_EditorClassIdentifier: 
-  shader: {fileID: 7200000, guid: 4b910649deabb284c87822c25ed82634, type: 3}
+  code: "float rm_sceneSDF(float3 position){\r\n\tfloat distance = plane(position
+    - float3(0, 0.5, 0));\r\n\tfloat distance2 = sphere(repeat(position,  float3(10,
+    100, 10)), 2);\r\n\tdistance = smoothUnion(distance, distance2, 3);\r\n\n\treturn
+    distance;\r\n}\r\n\r\nfloat4 rm_materialSceneSDF(float3 position){\r\n\tfloat
+    distance = plane(position - float3(0, 0.5, 0));\r\n\tfloat4 color = unlitMaterial(float4(0.264,
+    0.703, 0.703, 0.000));\r\n\r\n\tfloat distance2 = sphere(repeat(position,  float3(10,
+    100, 10)), 2);\r\n\tfloat4 color2 = unlitMaterial(float4(Test, Test2, Test, 0));\r\n\tdistance
+    = smoothUnion_m(distance, distance2, color, color2, 3);\r\n\n\treturn color;\r\n}"
   parameters:
   - id: 0
+  - id: 1
   references:
     version: 1
     00000000:
       type: {class: DynamicFloatParameter, ns: , asm: Assembly-CSharp}
       data:
         name: Test
-        value: 0
+        value: 0.3
+    00000001:
+      type: {class: DynamicFloatParameter, ns: , asm: Assembly-CSharp}
+      data:
+        name: Test2
+        value: 0.5

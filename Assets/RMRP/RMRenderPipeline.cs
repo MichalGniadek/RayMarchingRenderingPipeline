@@ -44,13 +44,13 @@ public class RMRenderPipeline : RenderPipeline
         buffer.SetComputeTextureParam(shader, 0, "output", outputTexture);
         buffer.SetComputeMatrixParam(shader, "camera_to_world", camera.cameraToWorldMatrix);
         buffer.SetComputeMatrixParam(shader, "inverse_projection", camera.projectionMatrix.inverse);
-
-        //scene.UpdateBuffers();
     }
 
     void BufferCommands(Camera camera)
     {
         buffer.BeginSample("Render " + camera.name);
+
+        scene.UpdateBuffers(buffer, shader);
 
         int threadGroupsX = Mathf.CeilToInt(camera.pixelWidth / 32.0f);
         int threadGroupsY = Mathf.CeilToInt(camera.pixelHeight / 32.0f);

@@ -4,6 +4,7 @@ using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 [CreateAssetMenu(fileName = "SDFScene", menuName = "RayMarchingRP/SDFScene", order = 0)]
 public class SDFScene : ScriptableObject
@@ -12,6 +13,7 @@ public class SDFScene : ScriptableObject
     const string write_path = "RMRP/Shaders/rmrp.compute";
     public ComputeShader LoadShader() =>
         AssetDatabase.LoadAssetAtPath<ComputeShader>("Assets/" + write_path);
+    int bufferPropertyID = -1;
 
     [SerializeReference]
     public List<DynamicParameter> parameters = new List<DynamicParameter>();
@@ -21,24 +23,46 @@ public class SDFScene : ScriptableObject
     const double wait_time = 1f;
     double lastInspectorChange = 0f;
 
+    public void ChangedParameterDefault()
+    {
+        lastInspectorChange = -1f;
+        foreach (var param in parameters)
+        {
+            if (param.name == "") continue;
+            switch (param)
+            {
+                case DynamicFloatParameter fParam:
+                    SetFloatParameter(param.name, fParam.value);
+                    break;
+            }
+        }
+    }
+
     public void OnValidate()
     {
-        lastInspectorChange = EditorApplication.timeSinceStartup;
+        if (lastInspectorChange == -1f)
+        {
+            lastInspectorChange = 0f;
+        }
+        else
+        {
+            lastInspectorChange = EditorApplication.timeSinceStartup;
+        }
     }
 
-    public bool UpdateFloatParameter(string name, float value)
+    public void SetFloatParameter(string name, float value)
     {
-        return false;
+        floatParameters.SetParameter(name, value);
     }
 
-    public void UpdateBuffers()
+    public void UpdateBuffers(CommandBuffer buffer, ComputeShader shader)
     {
-        floatParameters.Update();
+        floatParameters.Update(buffer, shader, bufferPropertyID);
     }
 
     void EditorUpdate()
     {
-        if (lastInspectorChange != 0 &&
+        if (lastInspectorChange != 0 && lastInspectorChange != -1 &&
             EditorApplication.timeSinceStartup - lastInspectorChange > wait_time)
         {
             lastInspectorChange = 0;
@@ -48,30 +72,43 @@ public class SDFScene : ScriptableObject
 
     public void Recompile()
     {
+        string s = ScriptTemplates.include + ScriptTemplates.script_commons + ScriptTemplates.main;
+
+        s += "\n// BUFFERS\ncbuffer SDFBuffers{\n";
+
         List<float> floatList = new List<float>();
+        floatParameters.names = new Dictionary<string, int>();
         foreach (var param in parameters)
         {
+            if (param.name == "") continue;
             switch (param)
             {
                 case DynamicFloatParameter fParam:
+                    s += "\tfloat ";
                     floatList.Add(fParam.value);
+                    floatParameters.names.Add(param.name, floatList.Count - 1);
                     break;
             }
+            s += param.name + ";\n";
         }
 
-        string s = ScriptTemplates.include + ScriptTemplates.script_commons + ScriptTemplates.main + "\n// USER SHADER\n#line 0\n" + code;
+        while (floatList.Count * sizeof(float) % 16 != 0) floatList.Add(0f);
+
+        s += "};\n";
+
+        s += "\n// USER SHADER\n#line 0\n" + code;
         StreamWriter writer = new StreamWriter(Application.dataPath + "/" + write_path, false);
         writer.Write(s);
         writer.Close();
 
         AssetDatabase.ImportAsset("Assets/" + write_path);
 
-        floatParameters.Cleanup();
-        //floatParameters.Setup(shader, floatList);
+        floatParameters.Setup(floatList);
     }
 
     void OnEnable()
     {
+        bufferPropertyID = Shader.PropertyToID("SDFBuffers");
         EditorApplication.update += EditorUpdate;
     }
 
@@ -85,6 +122,7 @@ public class SDFScene : ScriptableObject
 [System.Serializable]
 public struct ParameterData<T> where T : unmanaged
 {
+    public Dictionary<string, int> names;
     public NativeArray<T> array;
     public ComputeBuffer buffer;
 
@@ -94,29 +132,29 @@ public struct ParameterData<T> where T : unmanaged
         if (buffer != null && buffer.IsValid()) buffer.Dispose();
     }
 
-    public void Setup(ComputeShader shader, List<T> l)
+    public void Setup(List<T> l)
     {
-        if (shader == null)
-        {
-            Debug.LogError("No shader.");
-            return;
-        }
-        if (l.Count == 0)
-        {
-            return;
-        }
-
+        Cleanup();
+        if (l.Count == 0) return;
         array = new NativeArray<T>(l.ToArray(), Allocator.Persistent);
-
         buffer = new ComputeBuffer(l.Count, UnsafeUtility.SizeOf<T>(),
             ComputeBufferType.Constant);
-
-        //shader.SetConstantBuffer(0, buffer, 0, buffer.stride * buffer.count);
+        buffer.SetData(array);
     }
 
-    public void Update()
+    public void SetParameter(string name, T value)
     {
-        if (buffer != null && array != null) buffer.SetData(array);
+        array[names[name]] = value;
+    }
+
+    public void Update(CommandBuffer cmdBuffer, ComputeShader shader, int bufferPropertyID)
+    {
+        if (buffer != null && array != null)
+        {
+            cmdBuffer.SetComputeBufferData(buffer, array);
+            cmdBuffer.SetComputeConstantBufferParam(shader, bufferPropertyID,
+                        buffer, 0, buffer.stride * buffer.count);
+        }
     }
 }
 

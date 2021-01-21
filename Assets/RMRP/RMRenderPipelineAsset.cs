@@ -5,11 +5,11 @@ using UnityEngine.Rendering;
 [CreateAssetMenu(menuName = "Rendering/Ray Marching Render Pipeline")]
 public class RMRenderPipelineAsset : RenderPipelineAsset
 {
-    public ComputeShader shader = null;
+    public SDFScene scene = null;
     public Action updateDynamicParametersAction = null;
 
     protected override RenderPipeline CreatePipeline()
     {
-        return new RMRenderPipeline(shader, updateDynamicParametersAction);
+        return new RMRenderPipeline(scene, updateDynamicParametersAction);
     }
 }

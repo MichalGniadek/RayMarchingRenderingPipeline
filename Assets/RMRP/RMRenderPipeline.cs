@@ -8,11 +8,13 @@ public class RMRenderPipeline : RenderPipeline
     RenderTexture outputTexture = null;
 
     ComputeShader shader;
+    SDFScene scene;
     Action updateDynamicParameters = null;
 
-    public RMRenderPipeline(ComputeShader shader, Action updateDynamicParameters)
+    public RMRenderPipeline(SDFScene scene, Action updateDynamicParameters)
     {
-        this.shader = shader;
+        this.shader = scene.LoadShader();
+        this.scene = scene;
         this.updateDynamicParameters = updateDynamicParameters;
     }
 
@@ -42,6 +44,8 @@ public class RMRenderPipeline : RenderPipeline
         buffer.SetComputeTextureParam(shader, 0, "output", outputTexture);
         buffer.SetComputeMatrixParam(shader, "camera_to_world", camera.cameraToWorldMatrix);
         buffer.SetComputeMatrixParam(shader, "inverse_projection", camera.projectionMatrix.inverse);
+
+        //scene.UpdateBuffers();
     }
 
     void BufferCommands(Camera camera)

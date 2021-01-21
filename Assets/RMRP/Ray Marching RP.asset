@@ -12,4 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fb25d6e6df91ebc4aa3ca232a4e1e43d, type: 3}
   m_Name: Ray Marching RP
   m_EditorClassIdentifier: 
-  shader: {fileID: 7200000, guid: 579a16b6025907a4f9b7195e37819df4, type: 3}
+  shader: {fileID: 7200000, guid: 4b910649deabb284c87822c25ed82634, type: 3}
+  scene: {fileID: 11400000, guid: ed4317568210be84b8e6578ca40df860, type: 2}

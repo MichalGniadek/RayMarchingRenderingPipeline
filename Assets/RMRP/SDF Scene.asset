@@ -69,8 +69,8 @@ MonoBehaviour:
   floatBuffer:
     values:
     - 2.1
-    - -7.64
-    - 3.83
+    - -23.74
+    - 6.41
     - -3
     alignment: 0
   references:
@@ -84,4 +84,4 @@ MonoBehaviour:
       type: {class: Float3Parameter, ns: , asm: Assembly-CSharp}
       data:
         name: slide
-        value: {x: -7.64, y: 3.83, z: -3}
+        value: {x: -23.74, y: 6.41, z: -3}

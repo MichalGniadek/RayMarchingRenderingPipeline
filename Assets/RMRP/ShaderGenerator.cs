@@ -18,7 +18,11 @@ public static class ShaderGenerator
         RayMarchingSettings settings =
             (GraphicsSettings.currentRenderPipeline as RMRenderPipelineAsset).settings;
 
-        string s = main.Replace("__resolution", (1 / settings.resolution).ToString("F3", CultureInfo.InvariantCulture)) + include;
+        string s = main
+            .Replace("__resolution", (1 / settings.resolution).ToString("F3", CultureInfo.InvariantCulture))
+            .Replace("__steps", settings.steps.ToString());
+
+        s += include;
 
         s += "\n// BUFFERS\ncbuffer SDFBuffers{\n";
         s += buffers;
@@ -166,10 +170,9 @@ float3 calculate_normal(float3 pos)
 
 float4 raymarch(Ray r)
 {
-    const int STEP = 256;
     float dist = 0;
     float min_dist = 0.0001f;
-	for (int i = 0; i < STEP; i++)
+	for (int i = 0; i < __steps; i++)
 	{
         float current_distance = rm_sceneSDF(r.origin + r.direction * dist, i);
         dist += current_distance;
@@ -181,7 +184,7 @@ float4 raymarch(Ray r)
         }
 	}
 
-	return skybox_color(STEP);
+	return skybox_color(__steps);
 }
 
 [numthreads(8,8,1)]

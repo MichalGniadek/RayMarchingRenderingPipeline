@@ -28,4 +28,5 @@ public class RMRenderPipelineAsset : RenderPipelineAsset
 public class RayMarchingSettings
 {
     [Range(0.1f, 1)] public float resolution = 1;
+    [Range(1, 1024)] public int steps = 256;
 }

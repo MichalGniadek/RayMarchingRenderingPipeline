@@ -12,26 +12,58 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3397cea94a1cdb94bb60f4f52fbe25c1, type: 3}
   m_Name: SDF Scene
   m_EditorClassIdentifier: 
-  code: "float rm_sceneSDF(float3 position){\r\n\tfloat distance = plane(position
-    - float3(0, 0.5, 0));\r\n\tfloat distance2 = sphere(repeat(position,  float3(10,
-    100, 10)), 2);\r\n\tdistance = smoothUnion(distance, distance2, 3);\r\n\n\treturn
-    distance;\r\n}\r\n\r\nfloat4 rm_materialSceneSDF(float3 position){\r\n\tfloat
-    distance = plane(position - float3(0, 0.5, 0));\r\n\tfloat4 color = unlitMaterial(float4(0.264,
-    0.703, 0.703, 0.000));\r\n\r\n\tfloat distance2 = sphere(repeat(position,  float3(10,
-    100, 10)), 2);\r\n\tfloat4 color2 = unlitMaterial(float4(Test, Test2, Test, 0));\r\n\tdistance
-    = smoothUnion_m(distance, distance2, color, color2, 3);\r\n\n\treturn color;\r\n}"
+  code: "position = repeat(position, z);\n\nfloat distance = boxSD(position + funk,
+    1);\nif(distance <= 1){\nfloat s = 3.0;\n\nfor( int m=0; m<6; m++ )\r{\r\nfloat3
+    new_pos = repeat((position*s)+cross_move*(m+1), 6) ;\n\nfloat cross1 = boxSD(new_pos,
+    float3(99999999, 1, 1))/s;\nfloat cross2 = boxSD(new_pos, float3(1, 99999999,
+    1))/s;\nfloat cross3 = boxSD(new_pos, float3(1, 1, 99999999))/s;\nfloat cross
+    = min(cross1, min(cross2, cross3));\n\ns*= 3;\n\ndistance = max(distance, -cross);\n}\n\n}\n@float4
+    color = unlitMaterial(float4(step /y, 0.1, 0.3, 1));@"
   parameters:
   - id: 0
   - id: 1
+  - id: 2
+  - id: 3
+  - id: 4
+  floatParameters:
+    values:
+    - 108.1
+    - 2.2
+    - 0
+    - 0
+    - -6.9
+    - 0.24
+    - -1.8
+    - 0
+    - -0.43
+    - 0
+    - 0
+    - 0
+    alignment: 3
   references:
     version: 1
     00000000:
       type: {class: DynamicFloatParameter, ns: , asm: Assembly-CSharp}
       data:
-        name: Test
-        value: 0.3
+        name: y
+        value: 108.1
     00000001:
       type: {class: DynamicFloatParameter, ns: , asm: Assembly-CSharp}
       data:
-        name: Test2
-        value: 0.5
+        name: z
+        value: 2.2
+    00000002:
+      type: {class: DynamicFloatParameter, ns: , asm: Assembly-CSharp}
+      data:
+        name: w
+        value: 0
+    00000003:
+      type: {class: DynamicFloat3Parameter, ns: , asm: Assembly-CSharp}
+      data:
+        name: cross_move
+        value: {x: -8.54, y: -2.49, z: -3.26}
+    00000004:
+      type: {class: DynamicFloat3Parameter, ns: , asm: Assembly-CSharp}
+      data:
+        name: funk
+        value: {x: 0, y: 0, z: 0}

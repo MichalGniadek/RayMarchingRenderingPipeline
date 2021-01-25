@@ -7,15 +7,18 @@ public class RMRenderPipeline : RenderPipeline
     CommandBuffer buffer = new CommandBuffer { name = "Ray Marching" };
     RenderTexture outputTexture = null;
 
-    ComputeShader shader;
     SDFScene scene;
     Action updateDynamicParameters = null;
 
     public RMRenderPipeline(SDFScene scene, Action updateDynamicParameters)
     {
-        this.shader = scene.LoadShader();
-        this.scene = scene;
+        SetScene(scene);
         this.updateDynamicParameters = updateDynamicParameters;
+    }
+
+    public void SetScene(SDFScene scene)
+    {
+        this.scene = scene;
     }
 
     protected override void Render(ScriptableRenderContext context, Camera[] cameras)
@@ -41,20 +44,22 @@ public class RMRenderPipeline : RenderPipeline
         outputTexture.enableRandomWrite = true;
         outputTexture.Create();
 
-        buffer.SetComputeTextureParam(shader, 0, "output", outputTexture);
-        buffer.SetComputeMatrixParam(shader, "camera_to_world", camera.cameraToWorldMatrix);
-        buffer.SetComputeMatrixParam(shader, "inverse_projection", camera.projectionMatrix.inverse);
+        buffer.SetComputeTextureParam(scene.SDFShader, 0, "output", outputTexture);
+        // I think this only applies to xbone
+        buffer.SwitchIntoFastMemory(outputTexture, FastMemoryFlags.SpillBottom, 1f, false);
+        buffer.SetComputeMatrixParam(scene.SDFShader, "camera_to_world", camera.cameraToWorldMatrix);
+        buffer.SetComputeMatrixParam(scene.SDFShader, "inverse_projection", camera.projectionMatrix.inverse);
     }
 
     void BufferCommands(Camera camera)
     {
         buffer.BeginSample("Render " + camera.name);
 
-        scene.UpdateBuffers(buffer, shader);
+        scene.UpdateBuffersData(buffer, scene.SDFShader);
 
-        int threadGroupsX = Mathf.CeilToInt(camera.pixelWidth / 32.0f);
-        int threadGroupsY = Mathf.CeilToInt(camera.pixelHeight / 32.0f);
-        buffer.DispatchCompute(shader, 0, threadGroupsX, threadGroupsY, 1);
+        int threadGroupsX = Mathf.CeilToInt(camera.pixelWidth / 8.0f);
+        int threadGroupsY = Mathf.CeilToInt(camera.pixelHeight / 8.0f);
+        buffer.DispatchCompute(scene.SDFShader, 0, threadGroupsX, threadGroupsY, 1);
 
         buffer.Blit(outputTexture, camera.targetTexture);
 

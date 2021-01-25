@@ -1,10 +1,15 @@
 using UnityEngine;
 using UnityEditor;
+using Unity.EditorCoroutines.Editor;
 using UnityEditorInternal;
 using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using System.Reflection;
+using System.Collections;
+
+//https://github.com/joshcamas/UnityCodeEditor/blob/master/Editor/CodeEditor.cs
 
 [CustomEditor(typeof(SDFScene))]
 class SDFSceneEditor : Editor
@@ -17,90 +22,150 @@ class SDFSceneEditor : Editor
         parameters = serializedObject.FindProperty("parameters");
         list = new ReorderableList(serializedObject, parameters, true, true, false, true)
         {
-            drawHeaderCallback = DrawListHeader,
             drawElementCallback = DrawListElement,
-            elementHeightCallback = ListElementHeight,
+            drawHeaderCallback =
+                rect => GUI.Label(rect, $"Parameters ({parameters.arraySize})"),
+            elementHeightCallback =
+                index => EditorGUIUtility.singleLineHeight +
+                            2 * EditorGUIUtility.standardVerticalSpacing,
         };
-    }
-
-    private float ListElementHeight(int index)
-    {
-        return EditorGUIUtility.singleLineHeight +
-            2 * EditorGUIUtility.standardVerticalSpacing;
-    }
-
-    void DrawListHeader(Rect rect)
-    {
-        GUI.Label(rect, $"Parameters ({parameters.arraySize})");
     }
 
     void DrawListElement(Rect rect, int index, bool isActive, bool isFocused)
     {
-        SerializedProperty item = parameters.GetArrayElementAtIndex(index);
-        GUIContent[] labels = new GUIContent[] { GUIContent.none, new GUIContent("Val") };
+        var item = parameters.GetArrayElementAtIndex(index);
+        var name = item.FindPropertyRelative("name");
+        var value = item.FindPropertyRelative("value");
+
         rect.y += EditorGUIUtility.standardVerticalSpacing;
+        rect.height -= 2 * EditorGUIUtility.standardVerticalSpacing;
 
         Rect nameRect = rect;
         nameRect.width /= 3;
-        nameRect.height -= 2 * EditorGUIUtility.standardVerticalSpacing;
-        Rect parameterRect = rect;
-        parameterRect.x += rect.width / 3 + 10;
-        parameterRect.width *= (2f / 3f);
-        parameterRect.width -= 10;
-        parameterRect.height -= 2 * EditorGUIUtility.standardVerticalSpacing;
-
-        EditorGUI.PropertyField(nameRect, item.FindPropertyRelative("name"), GUIContent.none);
         EditorGUI.BeginChangeCheck();
-        EditorGUI.PropertyField(parameterRect, item.FindPropertyRelative("value"), GUIContent.none);
+        EditorGUI.PropertyField(nameRect, name, GUIContent.none);
+        if (EditorGUI.EndChangeCheck()) QueueRecompile();
+
+        Rect parameterRect = rect;
+        parameterRect.x += rect.width / 3 + 5;
+        parameterRect.width = rect.width * 2 / 3 - 10;
+
+        float prevLabelWidth = EditorGUIUtility.labelWidth;
+        EditorGUIUtility.labelWidth = 15;
+
+        EditorGUI.BeginChangeCheck();
+        EditorGUI.PropertyField(parameterRect, value, new GUIContent("V"));
         if (EditorGUI.EndChangeCheck())
         {
             serializedObject.ApplyModifiedProperties();
-            (serializedObject.targetObject as SDFScene).ChangedParameterDefault();
+            (serializedObject.targetObject as SDFScene).SetAllParameters();
         }
+
+        EditorGUIUtility.labelWidth = prevLabelWidth;
+    }
+
+    EditorCoroutine recompileCoroutine = null;
+    void QueueRecompile()
+    {
+        if (recompileCoroutine != null)
+            EditorCoroutineUtility.StopCoroutine(recompileCoroutine);
+        recompileCoroutine = EditorCoroutineUtility.StartCoroutine(Recompile(), this);
+    }
+
+    IEnumerator Recompile()
+    {
+        yield return new EditorWaitForSeconds(1f);
+        serializedObject.ApplyModifiedProperties();
+        (serializedObject.targetObject as SDFScene).Compile();
     }
 
     public override void OnInspectorGUI()
     {
         serializedObject.Update();
-        //https://github.com/joshcamas/UnityCodeEditor/blob/master/Editor/CodeEditor.cs
+        var text = serializedObject.FindProperty("code");
 
-        GUIStyle backStyle = new GUIStyle(GUI.skin.textArea);
-        backStyle.fontSize = 15;
-        backStyle.normal.textColor = Color.clear;
-        backStyle.hover.textColor = Color.clear;
-        backStyle.active.textColor = Color.clear;
-        backStyle.focused.textColor = Color.clear;
+        DisableSelectAllOnMouseUp();
+        var (backStyle, foreStyle) = GetStyles();
 
-        string text = serializedObject.FindProperty("code").stringValue;
-        text = EditorGUILayout.TextArea(text, backStyle, GUILayout.ExpandHeight(true));
-        serializedObject.FindProperty("code").stringValue = text;
+        EditorGUILayout.BeginHorizontal();
+        DrawLineNumbers(text.stringValue.Count(c => c == '\n'));
+
+        EditorGUI.BeginChangeCheck();
+        text.stringValue = EditorGUILayout.TextArea(text.stringValue,
+                                                    backStyle,
+                                                    GUILayout.ExpandHeight(true));
+        if (EditorGUI.EndChangeCheck()) QueueRecompile();
+
 
         Color prevBackgroundColor = GUI.backgroundColor;
         GUI.backgroundColor = Color.clear;
-        var foreStyle = new GUIStyle(GUI.skin.textArea);
-        foreStyle.fontSize = 15;
-        foreStyle.richText = true;
-        EditorGUI.TextArea(GUILayoutUtility.GetLastRect(), Highlight(text), foreStyle);
+
+        EditorGUI.TextArea(GUILayoutUtility.GetLastRect(),
+                           Highlight(text.stringValue),
+                           foreStyle);
+
         GUI.backgroundColor = prevBackgroundColor;
 
-        //EditorGUILayout.PropertyField(serializedObject.FindProperty("code"));
+        EditorGUILayout.EndHorizontal();
+
         EditorGUILayout.Space();
         list.DoLayoutList();
+        EditorGUILayout.Space();
+        CreateDynamicParameterButtons();
 
-        List<Type> types = typeof(DynamicParameter).Assembly.GetTypes()
-            .Where(type => type.IsSubclassOf(typeof(DynamicParameter))).ToList();
-
-        foreach (var type in types)
+        if (GUILayout.Button("Recompile"))
         {
-            if (GUILayout.Button("New " + ObjectNames.NicifyVariableName(type.Name)))
-            {
-                parameters.InsertArrayElementAtIndex(parameters.arraySize);
-                parameters.GetArrayElementAtIndex(parameters.arraySize - 1).managedReferenceValue =
-                        Activator.CreateInstance(type);
-            }
+            (serializedObject.targetObject as SDFScene).Compile();
         }
 
         serializedObject.ApplyModifiedProperties();
+    }
+
+    void DrawLineNumbers(int count)
+    {
+        Rect rect = EditorGUILayout.GetControlRect(GUILayout.Width(33), GUILayout.ExpandHeight(true));
+
+        string lineString = "<color=grey>";
+
+        for (int i = 1; i <= count + 1; i++)
+        {
+
+            lineString += i + "\n";
+        }
+        lineString += "</color>";
+
+        GUIStyle style = new GUIStyle(GUI.skin.textArea);
+        style.fontSize = 15;
+
+        style.alignment = TextAnchor.UpperRight;
+        style.richText = true;
+        GUI.Label(rect, new GUIContent(lineString), style);
+    }
+
+    void CreateDynamicParameterButtons()
+    {
+        List<Type> types = typeof(DynamicParameter).Assembly.GetTypes()
+                .Where(type => type.IsSubclassOf(typeof(DynamicParameter))).ToList();
+
+        GUILayout.BeginHorizontal();
+        int columnCount = 0;
+        foreach (var type in types)
+        {
+            if (GUILayout.Button(ObjectNames.NicifyVariableName(type.Name)))
+            {
+                parameters.InsertArrayElementAtIndex(parameters.arraySize);
+                parameters.GetArrayElementAtIndex(parameters.arraySize - 1)
+                    .managedReferenceValue = Activator.CreateInstance(type);
+            }
+            columnCount++;
+            if (columnCount == 4)
+            {
+                columnCount = 0;
+                GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();
+            }
+        }
+        GUILayout.EndHorizontal();
     }
 
     string Highlight(string text)
@@ -133,5 +198,30 @@ class SDFSceneEditor : Editor
         });
 
         return s;
+    }
+
+    FieldInfo cachedSelectAll = null;
+    void DisableSelectAllOnMouseUp()
+    {
+        cachedSelectAll ??= typeof(EditorGUI).GetField("s_SelectAllOnMouseUp",
+            BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Default);
+
+        cachedSelectAll.SetValue(null, false);
+    }
+
+    (GUIStyle, GUIStyle) GetStyles()
+    {
+        GUIStyle backStyle = new GUIStyle(GUI.skin.textArea);
+        backStyle.fontSize = 15;
+        backStyle.normal.textColor = Color.clear;
+        backStyle.hover.textColor = Color.clear;
+        backStyle.active.textColor = Color.clear;
+        backStyle.focused.textColor = Color.clear;
+
+        GUIStyle foreStyle = new GUIStyle(GUI.skin.textArea);
+        foreStyle.fontSize = 15;
+        foreStyle.richText = true;
+
+        return (backStyle, foreStyle);
     }
 }

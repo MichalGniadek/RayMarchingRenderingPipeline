@@ -192,20 +192,15 @@ class SDFSceneEditor : Editor
             s = s.Replace(keyword, $"<color=purple>{keyword}</color>");
         }
 
-        s = Regex.Replace(s, @"([\w\d_]+)( *\()", (m) =>
-        {
-            return $"<color=orange>{m.Groups[1]}</color>{m.Groups[2]}";
-        });
+        s = Regex.Replace(s, @"([\w\d_]+)( *\()",
+            m => $"<color=orange>{m.Groups[1]}</color>{m.Groups[2]}");
 
-        s = Regex.Replace(s, @"(?<!\w)([\d\.]+)(?!\w)", (m) =>
-        {
-            return $"<color=olive>{m.Groups[1]}</color>";
-        });
+        s = Regex.Replace(s, @"(?<!\w)([\d\.]+)(?!\w)",
+            m => $"<color=olive>{m.Groups[1]}</color>");
 
-        s = Regex.Replace(s, @"//.*\n", (m) =>
-        {
-            return $"<color=green>{m}</color>";
-        });
+        s = Regex.Replace(s, @"//.*\n", m => $"<color=green>{m}</color>");
+
+        s = Regex.Replace(s, "@", m => $"<color=navy>@</color>");
 
         return s;
     }

@@ -1,9 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public static class ShaderGenerator
 {
@@ -13,7 +15,10 @@ public static class ShaderGenerator
     {
         string writePath = Path(name);
 
-        string s = main + include;
+        RayMarchingSettings settings =
+            (GraphicsSettings.currentRenderPipeline as RMRenderPipelineAsset).settings;
+
+        string s = main.Replace("__resolution", (1 / settings.resolution).ToString("F3", CultureInfo.InvariantCulture)) + include;
 
         s += "\n// BUFFERS\ncbuffer SDFBuffers{\n";
         s += buffers;
@@ -135,7 +140,7 @@ Ray calculateRay(uint2 screen_pos)
 {
     Ray r;
 
-    float2 uv = screen_pos.xy / getOutputDimensions() * 2 - 1;
+    float2 uv = (screen_pos.xy * __resolution) / getOutputDimensions() * 2 - 1;
 
     r.origin = mul(camera_to_world, float4(0,0,0,1)).xyz;
     r.direction = mul(inverse_projection, float4(uv.xy,0,1)).xyz;

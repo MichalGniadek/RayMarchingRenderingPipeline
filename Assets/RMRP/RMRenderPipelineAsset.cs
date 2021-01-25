@@ -9,9 +9,11 @@ public class RMRenderPipelineAsset : RenderPipelineAsset
     public Action updateDynamicParametersAction = null;
     RMRenderPipeline pipeline = null;
 
+    public RayMarchingSettings settings;
+
     protected override RenderPipeline CreatePipeline()
     {
-        pipeline = new RMRenderPipeline(scene, updateDynamicParametersAction);
+        pipeline = new RMRenderPipeline(scene, updateDynamicParametersAction, settings);
         return pipeline;
     }
 
@@ -20,4 +22,10 @@ public class RMRenderPipelineAsset : RenderPipelineAsset
         scene.Compile();
         if (pipeline != null) pipeline.SetScene(scene);
     }
+}
+
+[System.Serializable]
+public class RayMarchingSettings
+{
+    [Range(0.1f, 1)] public float resolution = 1;
 }

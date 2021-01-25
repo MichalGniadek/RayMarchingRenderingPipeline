@@ -27,7 +27,7 @@ Ray calculateRay(uint2 screen_pos)
 {
     Ray r;
 
-    float2 uv = screen_pos.xy / getOutputDimensions() * 2 - 1;
+    float2 uv = (screen_pos.xy * 1.000) / getOutputDimensions() * 2 - 1;
 
     r.origin = mul(camera_to_world, float4(0,0,0,1)).xyz;
     r.direction = mul(inverse_projection, float4(uv.xy,0,1)).xyz;

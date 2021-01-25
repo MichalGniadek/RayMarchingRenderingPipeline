@@ -9,9 +9,11 @@ public class RMRenderPipeline : RenderPipeline
 
     SDFScene scene;
     Action updateDynamicParameters = null;
+    RayMarchingSettings settings = null;
 
-    public RMRenderPipeline(SDFScene scene, Action updateDynamicParameters)
+    public RMRenderPipeline(SDFScene scene, Action updateDynamicParameters, RayMarchingSettings settings)
     {
+        this.settings = settings;
         SetScene(scene);
         this.updateDynamicParameters = updateDynamicParameters;
     }
@@ -57,11 +59,12 @@ public class RMRenderPipeline : RenderPipeline
 
         scene.UpdateBuffersData(buffer, scene.SDFShader);
 
-        int threadGroupsX = Mathf.CeilToInt(camera.pixelWidth / 8.0f);
-        int threadGroupsY = Mathf.CeilToInt(camera.pixelHeight / 8.0f);
+        int threadGroupsX = Mathf.CeilToInt(camera.pixelWidth * settings.resolution / 8.0f);
+        int threadGroupsY = Mathf.CeilToInt(camera.pixelHeight * settings.resolution / 8.0f);
         buffer.DispatchCompute(scene.SDFShader, 0, threadGroupsX, threadGroupsY, 1);
 
-        buffer.Blit(outputTexture, camera.targetTexture);
+        buffer.Blit(outputTexture, camera.targetTexture,
+                Vector2.one * settings.resolution, Vector2.zero);
 
         buffer.EndSample("Render " + camera.name);
     }

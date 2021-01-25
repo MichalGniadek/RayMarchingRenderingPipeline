@@ -17,7 +17,7 @@ class SDFSceneEditor : Editor
     SerializedProperty parameters;
     ReorderableList list;
 
-    bool skyboxEditorShow = true;
+    bool skyboxEditorShow = false;
 
     string cachedMainCode = "";
     string cachedSkyboxCode = "";

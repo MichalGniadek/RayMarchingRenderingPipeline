@@ -4,6 +4,7 @@
 
 float rm_sceneSDF(float3 position, int step);
 float4 rm_materialSceneSDF(float3 position, int step);
+float4 skybox_color(int step);
 
 float4x4 camera_to_world;
 float4x4 inverse_projection;
@@ -67,7 +68,7 @@ float4 raymarch(Ray r)
         }
 	}
 
-	return float4(1, 0.1, 0.1, 1);
+	return skybox_color(STEP);
 }
 
 [numthreads(8,8,1)]
@@ -152,7 +153,8 @@ float distance = boxSD(position, 1);
 if(distance <= 1){
 float s = 3.0;
 
-for( int m=0; m<6; m++ ){
+for( int m=0; m<6; m++ )
+{
 float3 new_pos = repeat((position*s)+slide*(m+1), 6) ;
 
 float cross1 = boxSD(new_pos, float3(99999999, 1, 1))/s;
@@ -177,7 +179,8 @@ float distance = boxSD(position, 1);
 if(distance <= 1){
 float s = 3.0;
 
-for( int m=0; m<6; m++ ){
+for( int m=0; m<6; m++ )
+{
 float3 new_pos = repeat((position*s)+slide*(m+1), 6) ;
 
 float cross1 = boxSD(new_pos, float3(99999999, 1, 1))/s;
@@ -192,5 +195,8 @@ distance = max(distance, -cross);
 
 }
 float4 color = unlitMaterial(float4(step /100.0, 0.1, 0.3, 1));
+	return color;
+}float4 skybox_color(int step){
+float4 color = float4(step/100.0,0.1,0.3,1);
 	return color;
 }

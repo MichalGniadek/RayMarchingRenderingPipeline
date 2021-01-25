@@ -17,6 +17,8 @@ class SDFSceneEditor : Editor
     SerializedProperty parameters;
     ReorderableList list;
 
+    bool skyboxEditorShow = true;
+
     void OnEnable()
     {
         parameters = serializedObject.FindProperty("parameters");
@@ -82,8 +84,28 @@ class SDFSceneEditor : Editor
     public override void OnInspectorGUI()
     {
         serializedObject.Update();
-        var text = serializedObject.FindProperty("code");
+        DrawTextEditor(serializedObject.FindProperty("main_code"));
 
+        skyboxEditorShow = EditorGUILayout.BeginFoldoutHeaderGroup(skyboxEditorShow, "Skybox");
+        if (skyboxEditorShow)
+            DrawTextEditor(serializedObject.FindProperty("skybox_code"));
+        EditorGUILayout.EndFoldoutHeaderGroup();
+
+        EditorGUILayout.Space();
+        list.DoLayoutList();
+        EditorGUILayout.Space();
+        CreateDynamicParameterButtons();
+
+        if (GUILayout.Button("Recompile"))
+        {
+            (serializedObject.targetObject as SDFScene).Compile();
+        }
+
+        serializedObject.ApplyModifiedProperties();
+    }
+
+    void DrawTextEditor(SerializedProperty text)
+    {
         DisableSelectAllOnMouseUp();
         var (backStyle, foreStyle) = GetStyles();
 
@@ -107,18 +129,6 @@ class SDFSceneEditor : Editor
         GUI.backgroundColor = prevBackgroundColor;
 
         EditorGUILayout.EndHorizontal();
-
-        EditorGUILayout.Space();
-        list.DoLayoutList();
-        EditorGUILayout.Space();
-        CreateDynamicParameterButtons();
-
-        if (GUILayout.Button("Recompile"))
-        {
-            (serializedObject.targetObject as SDFScene).Compile();
-        }
-
-        serializedObject.ApplyModifiedProperties();
     }
 
     void DrawLineNumbers(int count)

@@ -7,7 +7,9 @@ using UnityEngine.Rendering;
 [CreateAssetMenu(fileName = "SDFScene", menuName = "RayMarchingRP/SDFScene", order = 0)]
 public partial class SDFScene : ScriptableObject
 {
-    public string code = null;
+    public string main_code = null;
+    public string skybox_code = null;
+
     ComputeShader sdfShader = null;
     public ComputeShader SDFShader
     {
@@ -52,7 +54,7 @@ public partial class SDFScene : ScriptableObject
         }
         floatBuffer.Setup();
 
-        SDFShader = ShaderGenerator.Generate(this.name, buffer_text, code);
+        SDFShader = ShaderGenerator.Generate(this.name, buffer_text, main_code, skybox_code);
     }
 
     void OnEnable()

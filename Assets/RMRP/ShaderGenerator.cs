@@ -9,7 +9,7 @@ public static class ShaderGenerator
 {
     static string Path(string name) => $"RMRP/Shaders/rmrp_{name}.compute";
 
-    public static ComputeShader Generate(string name, string buffers, string code)
+    public static ComputeShader Generate(string name, string buffers, string main_code, string skybox_code)
     {
         string writePath = Path(name);
 
@@ -22,11 +22,15 @@ public static class ShaderGenerator
         s += "\n// USER SHADER\n#line 0\n";
 
         s += "float rm_sceneSDF(float3 position, int step){\n";
-        s += Regex.Replace(code, "@[^@]*@", "");
+        s += Regex.Replace(main_code, "@[^@]*@", "");
         s += "\n\treturn distance;\n}\n\n";
 
         s += "float4 rm_materialSceneSDF(float3 position, int step){\n";
-        s += Regex.Replace(code, "@", "");
+        s += Regex.Replace(main_code, "@", "");
+        s += "\n\treturn color;\n}";
+
+        s += "float4 skybox_color(int step){\n";
+        s += skybox_code;
         s += "\n\treturn color;\n}";
 
         StreamWriter writer = new StreamWriter(Application.dataPath + "/" + writePath, false);
@@ -108,6 +112,7 @@ float4 litMaterial(float3 normal, float3 light_direction, float4 color)
 
 float rm_sceneSDF(float3 position, int step);
 float4 rm_materialSceneSDF(float3 position, int step);
+float4 skybox_color(int step);
 
 float4x4 camera_to_world;
 float4x4 inverse_projection;
@@ -171,7 +176,7 @@ float4 raymarch(Ray r)
         }
 	}
 
-	return float4(1, 0.1, 0.1, 1);
+	return skybox_color(STEP);
 }
 
 [numthreads(8,8,1)]

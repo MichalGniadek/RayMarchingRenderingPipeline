@@ -49,6 +49,10 @@ class SDFSceneEditor : Editor
         {
             QueueRecompile();
         }
+        else
+        {
+            (serializedObject.targetObject as SDFScene).SetAllParameters();
+        }
     }
 
     void RemoveElement(ReorderableList list)

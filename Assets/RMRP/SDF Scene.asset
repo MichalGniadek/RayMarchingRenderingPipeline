@@ -12,58 +12,76 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3397cea94a1cdb94bb60f4f52fbe25c1, type: 3}
   m_Name: SDF Scene
   m_EditorClassIdentifier: 
-  code: "position = repeat(position, z);\n\nfloat distance = boxSD(position + funk,
-    1);\nif(distance <= 1){\nfloat s = 3.0;\n\nfor( int m=0; m<6; m++ )\r{\r\nfloat3
-    new_pos = repeat((position*s)+cross_move*(m+1), 6) ;\n\nfloat cross1 = boxSD(new_pos,
-    float3(99999999, 1, 1))/s;\nfloat cross2 = boxSD(new_pos, float3(1, 99999999,
-    1))/s;\nfloat cross3 = boxSD(new_pos, float3(1, 1, 99999999))/s;\nfloat cross
-    = min(cross1, min(cross2, cross3));\n\ns*= 3;\n\ndistance = max(distance, -cross);\n}\n\n}\n@float4
-    color = unlitMaterial(float4(step /y, 0.1, 0.3, 1));@"
+  main_code: 'position = repeat(position, repetition);
+
+    
+
+    float distance
+    = boxSD(position, 1);
+
+    if(distance <= 1){
+
+    float s = 3.0;
+
+    
+
+    for(
+    int m=0; m<6; m++ )
+
+    {
+
+    float3 new_pos = repeat((position*s)+slide*(m+1),
+    6) ;
+
+    
+
+    float cross1 = boxSD(new_pos, float3(99999999, 1, 1))/s;
+
+    float
+    cross2 = boxSD(new_pos, float3(1, 99999999, 1))/s;
+
+    float cross3 = boxSD(new_pos,
+    float3(1, 1, 99999999))/s;
+
+    float cross = min(cross1, min(cross2, cross3));
+
+    
+
+    s*=
+    3;
+
+    
+
+    distance = max(distance, -cross);
+
+    }
+
+    
+
+    }
+
+    @float4
+    color = unlitMaterial(float4(step /100.0, 0.1, 0.3, 1));@'
+  skybox_code: float4 color = float4(step/100.0,0.1,0.3,1);
   parameters:
   - id: 0
   - id: 1
-  - id: 2
-  - id: 3
-  - id: 4
-  floatParameters:
+  floatBuffer:
     values:
-    - 108.1
-    - 2.2
-    - 0
-    - 0
-    - -6.9
-    - 0.24
-    - -1.8
-    - 0
-    - -0.43
-    - 0
-    - 0
-    - 0
-    alignment: 3
+    - 2.1
+    - -7.64
+    - 3.83
+    - -3
+    alignment: 0
   references:
     version: 1
     00000000:
-      type: {class: DynamicFloatParameter, ns: , asm: Assembly-CSharp}
+      type: {class: FloatParameter, ns: , asm: Assembly-CSharp}
       data:
-        name: y
-        value: 108.1
+        name: repetition
+        value: 2.1
     00000001:
-      type: {class: DynamicFloatParameter, ns: , asm: Assembly-CSharp}
+      type: {class: Float3Parameter, ns: , asm: Assembly-CSharp}
       data:
-        name: z
-        value: 2.2
-    00000002:
-      type: {class: DynamicFloatParameter, ns: , asm: Assembly-CSharp}
-      data:
-        name: w
-        value: 0
-    00000003:
-      type: {class: DynamicFloat3Parameter, ns: , asm: Assembly-CSharp}
-      data:
-        name: cross_move
-        value: {x: -8.54, y: -2.49, z: -3.26}
-    00000004:
-      type: {class: DynamicFloat3Parameter, ns: , asm: Assembly-CSharp}
-      data:
-        name: funk
-        value: {x: 0, y: 0, z: 0}
+        name: slide
+        value: {x: -7.64, y: 3.83, z: -3}

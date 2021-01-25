@@ -149,23 +149,29 @@ cbuffer SDFBuffers{
 float rm_sceneSDF(float3 position, int step){
 position = repeat(position, repetition);
 
+
 float distance = boxSD(position, 1);
 if(distance <= 1){
 float s = 3.0;
 
+
 for( int m=0; m<6; m++ )
 {
 float3 new_pos = repeat((position*s)+slide*(m+1), 6) ;
+
 
 float cross1 = boxSD(new_pos, float3(99999999, 1, 1))/s;
 float cross2 = boxSD(new_pos, float3(1, 99999999, 1))/s;
 float cross3 = boxSD(new_pos, float3(1, 1, 99999999))/s;
 float cross = min(cross1, min(cross2, cross3));
 
+
 s*= 3;
+
 
 distance = max(distance, -cross);
 }
+
 
 }
 
@@ -175,23 +181,29 @@ distance = max(distance, -cross);
 float4 rm_materialSceneSDF(float3 position, int step){
 position = repeat(position, repetition);
 
+
 float distance = boxSD(position, 1);
 if(distance <= 1){
 float s = 3.0;
 
+
 for( int m=0; m<6; m++ )
 {
 float3 new_pos = repeat((position*s)+slide*(m+1), 6) ;
+
 
 float cross1 = boxSD(new_pos, float3(99999999, 1, 1))/s;
 float cross2 = boxSD(new_pos, float3(1, 99999999, 1))/s;
 float cross3 = boxSD(new_pos, float3(1, 1, 99999999))/s;
 float cross = min(cross1, min(cross2, cross3));
 
+
 s*= 3;
+
 
 distance = max(distance, -cross);
 }
+
 
 }
 float4 color = unlitMaterial(float4(step /100.0, 0.1, 0.3, 1));

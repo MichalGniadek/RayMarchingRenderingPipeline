@@ -19,9 +19,15 @@ class SDFSceneEditor : Editor
 
     bool skyboxEditorShow = true;
 
+    string cachedMainCode = "";
+    string cachedSkyboxCode = "";
+
     void OnEnable()
     {
         parameters = serializedObject.FindProperty("parameters");
+        cachedMainCode = serializedObject.FindProperty("main_code").stringValue;
+        cachedSkyboxCode = serializedObject.FindProperty("skybox_code").stringValue;
+
         list = new ReorderableList(serializedObject, parameters, true, true, false, true)
         {
             drawElementCallback = DrawListElement,
@@ -30,7 +36,26 @@ class SDFSceneEditor : Editor
             elementHeightCallback =
                 index => EditorGUIUtility.singleLineHeight +
                             2 * EditorGUIUtility.standardVerticalSpacing,
+            onRemoveCallback = RemoveElement,
         };
+        Undo.undoRedoPerformed = OnUndoRedo;
+    }
+
+    void OnUndoRedo()
+    {
+        serializedObject.Update();
+        if (cachedMainCode != serializedObject.FindProperty("main_code").stringValue ||
+            cachedSkyboxCode != serializedObject.FindProperty("skybox_code").stringValue)
+        {
+            QueueRecompile();
+        }
+    }
+
+    void RemoveElement(ReorderableList list)
+    {
+        parameters.DeleteArrayElementAtIndex(list.index);
+        serializedObject.ApplyModifiedProperties();
+        QueueRecompile();
     }
 
     void DrawListElement(Rect rect, int index, bool isActive, bool isFocused)
@@ -85,10 +110,14 @@ class SDFSceneEditor : Editor
     {
         serializedObject.Update();
         DrawTextEditor(serializedObject.FindProperty("main_code"));
+        cachedMainCode = serializedObject.FindProperty("main_code").stringValue;
 
         skyboxEditorShow = EditorGUILayout.BeginFoldoutHeaderGroup(skyboxEditorShow, "Skybox");
         if (skyboxEditorShow)
+        {
             DrawTextEditor(serializedObject.FindProperty("skybox_code"));
+            cachedSkyboxCode = serializedObject.FindProperty("skybox_code").stringValue;
+        }
         EditorGUILayout.EndFoldoutHeaderGroup();
 
         EditorGUILayout.Space();

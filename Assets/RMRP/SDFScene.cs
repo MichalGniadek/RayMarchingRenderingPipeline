@@ -48,7 +48,7 @@ public partial class SDFScene : ScriptableObject
             if (param.name == "")
             {
                 Debug.LogError("Parameter name can't be empty");
-                return;
+                continue;
             }
             buffer_text += param.Compile(this);
         }

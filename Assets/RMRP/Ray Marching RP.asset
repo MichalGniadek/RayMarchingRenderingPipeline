@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   scene: {fileID: 11400000, guid: ed4317568210be84b8e6578ca40df860, type: 2}
   settings:
-    resolution: 1
+    resolution: 0.8
     steps: 128

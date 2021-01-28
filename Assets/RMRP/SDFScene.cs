@@ -10,11 +10,12 @@ public partial class SDFScene : ScriptableObject
     public string main_code = null;
     public string skybox_code = null;
 
+    string cachedBufferText = "";
+
     ComputeShader sdfShader = null;
     public ComputeShader SDFShader
     {
-        private set => sdfShader = value;
-        get => sdfShader ?? ShaderGenerator.LoadShader(this.name);
+        get => sdfShader ??= CodeGenerator.LoadShader(name);
     }
 
     [SerializeReference]
@@ -38,9 +39,9 @@ public partial class SDFScene : ScriptableObject
         }
     }
 
-    public void Compile(bool onlyBuffers = false)
+    public void CompileShader()
     {
-        string buffer_text = "";
+        cachedBufferText = "";
 
         floatBuffer.Cleanup();
         foreach (var param in parameters)
@@ -50,16 +51,23 @@ public partial class SDFScene : ScriptableObject
                 Debug.LogError("Parameter name can't be empty");
                 continue;
             }
-            buffer_text += param.Compile(this);
+            cachedBufferText += param.Compile(this);
         }
         floatBuffer.Setup();
 
-        SDFShader = ShaderGenerator.Generate(this.name, buffer_text, main_code, skybox_code);
+        CodeGenerator.GenerateComputeShader(name, cachedBufferText, main_code, skybox_code);
+        sdfShader = null;
+    }
+
+    public void CompileAll()
+    {
+        CompileShader();
+        CodeGenerator.GenerateCSharpScript(name, cachedBufferText, main_code);
     }
 
     void OnEnable()
     {
-        Compile();
+        CompileShader();
     }
 
     void OnDisable()

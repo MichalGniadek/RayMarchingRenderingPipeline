@@ -107,7 +107,7 @@ class SDFSceneEditor : Editor
     {
         yield return new EditorWaitForSeconds(1f);
         serializedObject.ApplyModifiedProperties();
-        (serializedObject.targetObject as SDFScene).Compile();
+        (serializedObject.targetObject as SDFScene).CompileShader();
     }
 
     public override void OnInspectorGUI()
@@ -131,7 +131,12 @@ class SDFSceneEditor : Editor
 
         if (GUILayout.Button("Recompile"))
         {
-            (serializedObject.targetObject as SDFScene).Compile();
+            (serializedObject.targetObject as SDFScene).CompileShader();
+        }
+
+        if (GUILayout.Button("Compile C# Script"))
+        {
+            (serializedObject.targetObject as SDFScene).CompileAll();
         }
 
         serializedObject.ApplyModifiedProperties();

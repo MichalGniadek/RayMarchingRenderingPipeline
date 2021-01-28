@@ -27,7 +27,7 @@ Ray calculateRay(uint2 screen_pos)
 {
     Ray r;
 
-    float2 uv = (screen_pos.xy * 1.000) / getOutputDimensions() * 2 - 1;
+    float2 uv = (screen_pos.xy * 1.250) / getOutputDimensions() * 2 - 1;
 
     r.origin = mul(camera_to_world, float4(0,0,0,1)).xyz;
     r.direction = mul(inverse_projection, float4(uv.xy,0,1)).xyz;
@@ -100,18 +100,6 @@ float3 repeat(float3 position, float3 repeat)
     return fmod(abs(position+0.5*repeat), repeat)-0.5*repeat;
 }
 
-float smoothUnion_m(float a, float b, inout float4 color_a, float4 color_b, float blend)
-{
-    float m = min(a, b);
-
-    float h_dist = max(blend - abs(a - b), 0.0) / blend;
-    m -= h_dist*h_dist*blend*(1.0/4.0);
-
-    color_a = lerp(color_a, color_b, saturate(a - m));//to be optimized
-
-    return m;
-}
-
 float smoothUnion(float a, float b, float blend)
 {
     float m = min(a, b);
@@ -132,15 +120,15 @@ float4 unlitMaterial(float4 color)
     return color;
 }
 
-float4 litMaterial(float3 normal, float3 light_direction, float4 color)
-{
-    return saturate(dot(-normalize(light_direction), normal)) * color;
-}
-
+// float4 litMaterial(float3 normal, float3 light_direction, float4 color)
+// {
+//     return saturate(dot(-normalize(light_direction), normal)) * color;
+// }
+ 
 // BUFFERS
 cbuffer SDFBuffers{
-	float repetition;
 	float3 slide;
+	float3 repetition;
 };
 
 // USER SHADER
@@ -165,7 +153,6 @@ s*= 3;
 
 distance = max(distance, -cross);
 }
-
 }
 
 	return distance;
@@ -191,7 +178,6 @@ s*= 3;
 
 distance = max(distance, -cross);
 }
-
 }
 float4 color = unlitMaterial(float4(step /100.0, 0.1, 0.3, 1));
 	return color;

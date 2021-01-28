@@ -1,0 +1,84 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3397cea94a1cdb94bb60f4f52fbe25c1, type: 3}
+  m_Name: Menger
+  m_EditorClassIdentifier: 
+  main_code: 'position = repeat(position, repetition);
+
+
+    float distance = boxSD(position,
+    1);
+
+    if(distance <= 1){
+
+    float s = 3.0;
+
+
+    for( int m=0; m<6; m++
+    )
+
+    {
+
+    float3 new_pos = repeat((position*s)+slide*(m+1), 6) ;
+
+
+    float
+    cross1 = boxSD(new_pos, float3(99999999, 1, 1))/s;
+
+    float cross2 = boxSD(new_pos,
+    float3(1, 99999999, 1))/s;
+
+    float cross3 = boxSD(new_pos, float3(1, 1, 99999999))/s;
+
+    float
+    cross = min(cross1, min(cross2, cross3));
+
+
+    s*= 3;
+
+
+    distance = max(distance,
+    -cross);
+
+    }
+
+    }
+
+    @float4 color = unlitMaterial(float4(step /100.0,
+    0.1, 0.3, 1));@'
+  skybox_code: float4 color = float4(step/100.0,0.1,0.3,1);
+  parameters:
+  - id: 0
+  - id: 1
+  floatBuffer:
+    values:
+    - 22.14
+    - -2.44
+    - -3.32
+    - 0
+    - 2.6
+    - 2.52
+    - 2
+    - 0
+    alignment: 3
+  references:
+    version: 1
+    00000000:
+      type: {class: Float3Parameter, ns: , asm: Assembly-CSharp}
+      data:
+        name: slide
+        value: {x: 22.14, y: -2.44, z: -3.32}
+    00000001:
+      type: {class: Float3Parameter, ns: , asm: Assembly-CSharp}
+      data:
+        name: repetition
+        value: {x: 2.6, y: 2.52, z: 2}

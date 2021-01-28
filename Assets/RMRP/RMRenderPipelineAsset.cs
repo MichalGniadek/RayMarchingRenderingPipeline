@@ -19,7 +19,7 @@ public class RMRenderPipelineAsset : RenderPipelineAsset
 
     override protected void OnValidate()
     {
-        scene.Compile();
+        scene.CompileShader();
         if (pipeline != null) pipeline.SetScene(scene);
     }
 }

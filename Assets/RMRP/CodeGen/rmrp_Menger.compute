@@ -1,5 +1,9 @@
 
-// COMMONS
+// COMMON
+float rm_sceneSDF(float3 position, int step);
+float4 rm_materialSceneSDF(float3 position, int step);
+float4 skybox_color(int step);
+
 float4x4 camera_to_world;
 float4x4 inverse_projection;
 uniform RWTexture2D<float4> output;
@@ -21,7 +25,7 @@ Ray calculateRay(uint2 screen_pos)
 {
     Ray r;
 
-    float2 uv = screen_pos.xy / getOutputDimensions() * 2 - 1;
+    float2 uv = (screen_pos.xy * 1.250) / getOutputDimensions() * 2 - 1;
 
     r.origin = mul(camera_to_world, float4(0,0,0,1)).xyz;
     r.direction = mul(inverse_projection, float4(uv.xy,0,1)).xyz;
@@ -34,12 +38,6 @@ Ray calculateRay(uint2 screen_pos)
     return r;
 }
 
-// MAIN
-#pragma kernel CSMain
-
-float rm_sceneSDF(float3 position, int step);
-float4 rm_materialSceneSDF(float3 position, int step);
-
 //technique from http://www.iquilezles.org/www/articles/normalsSDF/normalsSDF.htm
 float3 calculate_normal(float3 pos)
 {
@@ -50,17 +48,18 @@ float3 calculate_normal(float3 pos)
                       k.yxy * rm_sceneSDF( pos + k.yxy, 0) +
                       k.xxx * rm_sceneSDF( pos + k.xxx, 0) );
 }
+    
+// MAIN
 
 float4 raymarch(Ray r)
 {
-    const int STEP = 256;
     float dist = 0;
     float min_dist = 0.0001f;
-	for (int i = 0; i < STEP; i++)
+	for (int i = 0; i < 128; i++)
 	{
         float current_distance = rm_sceneSDF(r.origin + r.direction * dist, i);
         dist += current_distance;
-		if (current_distance < min_dist)//not sure about that * dist bit
+		if (current_distance < min_dist)
         {
             float4 col = rm_materialSceneSDF(r.origin + r.direction * dist, i);
             //col.rgb = pow(col.rgb, float3(0.4545, 0.4545, 0.4545)); //Gamma correction
@@ -68,9 +67,10 @@ float4 raymarch(Ray r)
         }
 	}
 
-	return float4(1, 0.1, 0.1, 1);
+	return skybox_color(128);
 }
 
+#pragma kernel CSMain
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
@@ -98,21 +98,7 @@ float boxSD(float3 p, float3 b)
 
 float3 repeat(float3 position, float3 repeat)
 {
-    //float3 cell = floor((abs(position)+0.5*repeat)/repeat);
-
     return fmod(abs(position+0.5*repeat), repeat)-0.5*repeat;
-}
-
-float smoothUnion_m(float a, float b, inout float4 color_a, float4 color_b, float blend)
-{
-    float m = min(a, b);
-
-    float h_dist = max(blend - abs(a - b), 0.0) / blend;
-    m -= h_dist*h_dist*blend*(1.0/4.0);
-
-    color_a = lerp(color_a, color_b, saturate(a - m));//to be optimized
-
-    return m;
 }
 
 float smoothUnion(float a, float b, float blend)
@@ -135,27 +121,68 @@ float4 unlitMaterial(float4 color)
     return color;
 }
 
-float4 litMaterial(float3 normal, float3 light_direction, float4 color)
-{
-    return saturate(dot(-normalize(light_direction), normal)) * color;
-}
-
+// float4 litMaterial(float3 normal, float3 light_direction, float4 color)
+// {
+//     return saturate(dot(-normalize(light_direction), normal)) * color;
+// }
+ 
 // BUFFERS
 cbuffer SDFBuffers{
-	float asd;
-	float fgh;
+	float3 slide;
+	float3 repetition;
 };
 
 // USER SHADER
 #line 0
 float rm_sceneSDF(float3 position, int step){
+position = repeat(position, repetition);
+
 float distance = boxSD(position, 1);
+if(distance <= 1){
+float s = 3.0;
+
+for( int m=0; m<6; m++ )
+{
+float3 new_pos = repeat((position*s)+slide*(m+1), 6) ;
+
+float cross1 = boxSD(new_pos, float3(99999999, 1, 1))/s;
+float cross2 = boxSD(new_pos, float3(1, 99999999, 1))/s;
+float cross3 = boxSD(new_pos, float3(1, 1, 99999999))/s;
+float cross = min(cross1, min(cross2, cross3));
+
+s*= 3;
+
+distance = max(distance, -cross);
+}
+}
 
 	return distance;
 }
 
 float4 rm_materialSceneSDF(float3 position, int step){
+position = repeat(position, repetition);
+
 float distance = boxSD(position, 1);
-float4 color = unlitMaterial(float4(distance*fgh, 0.1, 0.1, 1));
+if(distance <= 1){
+float s = 3.0;
+
+for( int m=0; m<6; m++ )
+{
+float3 new_pos = repeat((position*s)+slide*(m+1), 6) ;
+
+float cross1 = boxSD(new_pos, float3(99999999, 1, 1))/s;
+float cross2 = boxSD(new_pos, float3(1, 99999999, 1))/s;
+float cross3 = boxSD(new_pos, float3(1, 1, 99999999))/s;
+float cross = min(cross1, min(cross2, cross3));
+
+s*= 3;
+
+distance = max(distance, -cross);
+}
+}
+float4 color = unlitMaterial(float4(step /100.0, 0.1, 0.3, 1));
+	return color;
+}float4 skybox_color(int step){
+float4 color = float4(step/100.0,0.1,0.3,1);
 	return color;
 }

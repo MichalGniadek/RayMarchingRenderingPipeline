@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -7,22 +5,21 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-public static class ShaderGenerator
+public static partial class CodeGenerator
 {
-    static string Path(string name) => $"RMRP/Shaders/rmrp_{name}.compute";
+    public static ComputeShader LoadShader(string name) =>
+            AssetDatabase.LoadAssetAtPath<ComputeShader>("Assets" + MainPath + $"rmrp_{name}.compute");
 
-    public static ComputeShader Generate(string name, string buffers, string main_code, string skybox_code)
+    public static void GenerateComputeShader(string name, string buffers, string mainCode, string skybox_code)
     {
-        string writePath = Path(name);
-
         RayMarchingSettings settings =
             (GraphicsSettings.currentRenderPipeline as RMRenderPipelineAsset).settings;
 
-        string s = main
+        string s = (shaderCommon + shaderStandardMain)
             .Replace("__resolution", (1 / settings.resolution).ToString("F3", CultureInfo.InvariantCulture))
             .Replace("__steps", settings.steps.ToString());
 
-        s += include;
+        s += HandleVariants(helperFunctions, "#", false);
 
         s += "\n// BUFFERS\ncbuffer SDFBuffers{\n";
         s += buffers;
@@ -30,95 +27,25 @@ public static class ShaderGenerator
 
         s += "\n// USER SHADER\n#line 0\n";
 
+        string shaderCode = HandleVariants(mainCode, "#", false);
+
         s += "float rm_sceneSDF(float3 position, int step){\n";
-        s += Regex.Replace(main_code, "@[^@]*@", "");
+        s += HandleVariants(shaderCode, "@", false);
         s += "\n\treturn distance;\n}\n\n";
 
         s += "float4 rm_materialSceneSDF(float3 position, int step){\n";
-        s += Regex.Replace(main_code, "@", "");
+        s += HandleVariants(shaderCode, "@", true);
         s += "\n\treturn color;\n}";
 
         s += "float4 skybox_color(int step){\n";
         s += skybox_code;
         s += "\n\treturn color;\n}";
 
-        StreamWriter writer = new StreamWriter(Application.dataPath + "/" + writePath, false);
-        writer.Write(s);
-        writer.Close();
-
-        AssetDatabase.ImportAsset("Assets/" + writePath, ImportAssetOptions.ForceUpdate);
-
-        return AssetDatabase.LoadAssetAtPath<ComputeShader>("Assets/" + writePath);
+        WriteToFile($"rmrp_{name}.compute", s);
     }
 
-    public static ComputeShader LoadShader(string name) =>
-        AssetDatabase.LoadAssetAtPath<ComputeShader>("Assets/" + Path(name));
-
-
-    public static string include = @"
-// INCLUDE
-float planeSD(float3 position)
-{
-    return position.y;
-}
-
-float sphereSD(float3 position, float radius)
-{
-    return length(position) - radius;
-}
-
-float boxSD(float3 p, float3 b)
-{
-    float3 q = abs(p) - b;
-    return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)), 0.0);
-}
-
-float3 repeat(float3 position, float3 repeat)
-{
-    return fmod(abs(position+0.5*repeat), repeat)-0.5*repeat;
-}
-
-float smoothUnion_m(float a, float b, inout float4 color_a, float4 color_b, float blend)
-{
-    float m = min(a, b);
-
-    float h_dist = max(blend - abs(a - b), 0.0) / blend;
-    m -= h_dist*h_dist*blend*(1.0/4.0);
-
-    color_a = lerp(color_a, color_b, saturate(a - m));//to be optimized
-
-    return m;
-}
-
-float smoothUnion(float a, float b, float blend)
-{
-    float m = min(a, b);
-
-    float h_dist = max(blend - abs(a - b), 0.0) / blend;
-    m -= h_dist*h_dist*blend*(1.0/4.0);
-
-    return m;
-}
-
-float3 transformModifier(float3 position, float3 transform)
-{
-    return position - transform;
-}
-
-float4 unlitMaterial(float4 color)
-{
-    return color;
-}
-
-float4 litMaterial(float3 normal, float3 light_direction, float4 color)
-{
-    return saturate(dot(-normalize(light_direction), normal)) * color;
-}
-";
-    public static string main = @"
-// MAIN
-#pragma kernel CSMain
-
+    public static string shaderCommon = @"
+// COMMON
 float rm_sceneSDF(float3 position, int step);
 float4 rm_materialSceneSDF(float3 position, int step);
 float4 skybox_color(int step);
@@ -167,6 +94,10 @@ float3 calculate_normal(float3 pos)
                       k.yxy * rm_sceneSDF( pos + k.yxy, 0) +
                       k.xxx * rm_sceneSDF( pos + k.xxx, 0) );
 }
+    ";
+
+    public static string shaderStandardMain = @"
+// MAIN
 
 float4 raymarch(Ray r)
 {
@@ -187,6 +118,7 @@ float4 raymarch(Ray r)
 	return skybox_color(__steps);
 }
 
+#pragma kernel CSMain
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {

@@ -15,5 +15,5 @@ You can use buttons below to add additional parameters that can be changed in th
 Shader will recompile automatically after changes, but you can also force it with a button at the bottom.
 
 ## Showcase
-![Menger](Showcase\menger.png)
-![Code editor](Showcase\code_editor.png)
+![Menger](Showcase/menger.png)
+![Code editor](Showcase/code_editor.png)
